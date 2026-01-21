@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <chrono>
 #include <opencv2/imgproc.hpp>
 
 // https://github.com/HowardHinnant/date/blob/master/include/date/date.h
@@ -56,7 +57,7 @@ namespace utils {
     }
 
     // split time point to 7 parts, include year, month, day ... in order
-    inline void time_split(system_clock::time_point tp, std::vector<int>& time_parts, int time_zone = 8) {
+    inline void time_split(std::chrono::system_clock::time_point tp, std::vector<int>& time_parts, int time_zone = 8) {
         // right time zone
         tp = tp + std::chrono::hours{time_zone};
 
@@ -79,13 +80,28 @@ namespace utils {
         time_parts.push_back(time.subseconds().count());
     }
 
+    inline std::string set_width_and_fill(std::string str, 
+                                    int width, 
+                                    char fill = '0', 
+                                    bool fill_left = true) {
+        while (str.size() < width) {
+            if (fill_left) {
+                str = fill + str;
+            }
+            else {   
+                str = str + fill;
+            }
+        }
+        return str;
+    }
+
     // format time point to string, chars in <> are keywords.
     // in: <year>-<mon>-<day> <hour>:<min>:<sec>.<mili>
     // out: 2022-10-08 13:53:07.230
     // or
     // in: [<day>/<mon>/<year> <hour>:<min>:<sec>.<mili>]
     // out: [08/10/2022 13:53:07.230]
-    inline std::string time_format(system_clock::time_point tp, std::string template_str = "<year>-<mon>-<day> <hour>:<min>:<sec>.<mili>", int time_zone = 8) {
+    inline std::string time_format(std::chrono::system_clock::time_point tp, std::string template_str = "<year>-<mon>-<day> <hour>:<min>:<sec>.<mili>", int time_zone = 8) {
         // right time zone
         tp = tp + std::chrono::hours{time_zone};
 

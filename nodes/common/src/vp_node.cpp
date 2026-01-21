@@ -1,13 +1,18 @@
 
-#include "vp_node.h"
-#include "vp_utils.h"
-#include "logging.h"
+#include "nodes/common/include/vp_node.h"
+#include "utils/vp_utils.h"
+#include "utils/logging.h"
 
 
 namespace vp_nodes {
 
+vp_node::vp_node(std::string node_name) : node_name_(node_name) {
+  node_type_ = vp_node_type::MID;
+}
 
-void vp_node_base::handle_run() {
+vp_node::~vp_node() {}
+
+void vp_node::handle_run() {
   // cache for batch handling if need
   std::vector<std::shared_ptr<vp_objects::vp_frame_meta>> frame_meta_batch_cache {};
   while (alive) {
@@ -30,15 +35,13 @@ void vp_node_base::handle_run() {
     auto                                 batch_complete = false;
 
     // call handlers
-    if (in_meta->meta_type == vp_objects::vp_meta_type::CONTROL) {
+    if (in_meta->meta_type_ == vp_objects::vp_meta_type::CONTROL) {
       auto control_meta = std::dynamic_pointer_cast<vp_objects::vp_control_meta>(in_meta);
       out_meta = this->handle_control_meta(control_meta);
-    } else if (in_meta->meta_type == vp_objects::vp_meta_type::FRAME) {
+    } else if (in_meta->meta_type_ == vp_objects::vp_meta_type::FRAME) {
       auto frame_meta = std::dynamic_pointer_cast<vp_objects::vp_frame_meta>(in_meta);
-      // batch by batch
       frame_meta_batch_cache.push_back(frame_meta);
       if (frame_meta_batch_cache.size() >= frame_meta_handle_batch) {
-        // cache complete
         this->handle_frame_meta(frame_meta_batch_cache);
         batch_complete = true;
       } else {
@@ -51,12 +54,10 @@ void vp_node_base::handle_run() {
 
     // one by one mode
     // return nullptr means do not push it to next nodes(such as in des nodes).
-    if (in_meta->meta_type == vp_objects::vp_meta_type::CONTROL && out_meta == nullptr) {
+    if (in_meta->meta_type_ == vp_objects::vp_meta_type::CONTROL && out_meta == nullptr) {
       frame_meta_batch_cache.clear();
       continue;
     }
-
-    // batch by batch mode
     // 处理完后送入缓存队列 out_queue
     if (batch_complete) {
       for (auto& i : frame_meta_batch_cache) {
@@ -74,32 +75,22 @@ void vp_node_base::handle_run() {
   this->out_queue_semaphore.signal();
 }
 
-// there is only one thread poping from the out_queue, we don't use lock here when poping.
-void vp_node_base::dispatch_run() {
+void vp_node::dispatch_run() {
   while (alive) {
     this->out_queue_semaphore.wait();
     LOGD(NODE) << utils::string_format("[%s] before dispatching meta, out_queue.size()==>%d",
                 node_name_.c_str(), out_queue.Size());
-    auto out_meta = this->out_queue.front();
-    // dead flag
+    auto out_meta = this->out_queue.Front();
     if (out_meta == nullptr) {
       continue;
     }
-    // leaving hooker activated if need
     invoke_meta_leaving_hooker(node_name_, out_queue.Size(), out_meta);
-    this->push_meta(out_meta);
+    this->dispatch_meta(out_meta);
     this->out_queue.Pop();  // cache queue derectly pop out
     LOGD(NODE) << utils::string_format("[%s] after dispatching meta, out_queue.size()==>%d", 
                 node_name_.c_str(), out_queue.Size());
   }
 }
-
-
-vp_node::vp_node(std::string node_name) : vp_node_base(node_name) {
-  node_type_ = vp_node_type::MID;
-}
-
-vp_node::~vp_node() {}
 
 std::shared_ptr<vp_objects::vp_meta> vp_node::handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta) {
   return meta;
@@ -124,7 +115,6 @@ void vp_node::meta_flow(std::shared_ptr<vp_objects::vp_meta> meta) {
   LOGD(NODE) << utils::string_format("[%s] before meta flow, in_queue.size()==>%d", 
                 node_name_.c_str(), in_queue.Size());
   this->in_queue.Push(meta);
-  // arriving hooker activated if need
   invoke_meta_arriving_hooker(node_name_, in_queue.Size(), meta);
   this->in_queue_semaphore.signal();
   LOGD(NODE) << utils::string_format("[%s] after meta flow, in_queue.size()==>%d", node_name_.c_str(), in_queue.Size());
@@ -142,10 +132,9 @@ void vp_node::detach() {
 }
 
 // 在 pre_nodes 成员中查找存在于输入列表中的节点，然后移除当前节点作为 pre_node 的订阅
-// 不需要检查 node 类型
 void vp_node::detach_from(std::vector<std::string> pre_node_names) {
   for (auto i = this->pre_nodes.begin(); i != this->pre_nodes.end();) {
-    if (std::find(pre_node_names.begin(), pre_node_names.end(), (*i)->node_name) != pre_node_names.end()) {
+    if (std::find(pre_node_names.begin(), pre_node_names.end(), (*i)->node_name_) != pre_node_names.end()) {
       (*i)->remove_subscriber(shared_from_this());
       i = this->pre_nodes.erase(i);
     } else {
@@ -167,6 +156,9 @@ void vp_node::detach_recursively() {
  * pre_nodes 不应当存在 des node
  */ 
 void vp_node::attach_to(std::vector<std::shared_ptr<vp_node>> pre_nodes) {
+  if (this->node_type() == vp_node_type::SRC) {  // should not be src
+    throw vp_excepts::vp_invalid_argument_error("SRC nodes must not have any pre nodes!");
+  }
   for (auto i : pre_nodes) {
     i->add_subscriber(shared_from_this());
     if (i->node_type() == vp_node_type::DES) {  // should not be des
@@ -198,20 +190,19 @@ void vp_node::deinitialized() {
   }
 }
 
-std::vector<std::shared_ptr<vp_node_base>> vp_node::next_nodes() {
-  std::vector<std::shared_ptr<vp_node_base>> next_nodes;
+std::vector<std::shared_ptr<vp_node>> vp_node::next_nodes() {
+  std::vector<std::shared_ptr<vp_node>> next_nodes;
   std::lock_guard<std::mutex>           guard(this->subscribers_lock);
   for (auto& i : this->subscribers) {
-    next_nodes.push_back(std::dynamic_pointer_cast<vp_node_base>(i));
+    next_nodes.push_back(std::dynamic_pointer_cast<vp_node>(i));
   }
   return next_nodes;
 }
 
 void vp_node::pending_meta(std::shared_ptr<vp_objects::vp_meta> meta) {
   this->out_queue.Push(meta);
-  // handled hooker activated if need
   invoke_meta_handled_hooker(node_name_, out_queue.Size(), meta);
-  // notify consumer of out_queue
   this->out_queue_semaphore.signal();
 }
+
 }  // namespace vp_nodes

@@ -12,7 +12,7 @@ class vp_meta_publisher {
  private:
  protected:
   // push meta to next nodes
-  // 因此如果节点后续后面有节点需要接收数据，那么就需要继承这个 publisher，自己作为发送者
+  // 因此如果此节点后面存在下游节点，那么就需要继承这个 publisher，自己作为发送者
   virtual void push_meta(std::shared_ptr<vp_objects::vp_meta> meta);
 
   // non-copyable for all child class

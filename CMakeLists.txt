@@ -61,13 +61,6 @@ if(build_tests)
   set(build_gtest_already ON)  # used by subdirectories
 endif()
 
-if (BUILD_GFLAGS)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/gflags)
-endif()
-
-if (BUILD_GLOG)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/glog)
-endif()
 
 # ---[ libyuv
 if(BUILD_LIBYUV)
@@ -79,7 +72,7 @@ if(BUILD_LIBYUV)
 endif()
 
 if (BUILD_NLOHMAN_JSON)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nlohmann_json)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nlohmann-json)
 endif()
 
 set(3RDPARTY_LIBS "")
@@ -116,18 +109,15 @@ else()
   message(FATAL_ERROR "libyuv not found. Set BUILD_LIBYUV=ON in root CMakeLists.txt to build")
 endif()
 
-# ---[ gflags and glog
-if(BUILD_GFLAGS)
-  list(APPEND 3RDPARTY_LIBS gflags)
-  list(APPEND DEPENDENCIES gflags)
-  message(STATUS "Using gflags library from root build")
-endif()
+# ---[ gflags
+include(${VIDEO_STREAM_ROOT_PATH}/cmake/FindGFlags.cmake)
+include_directories(${GFLAGS_INCLUDE_DIRS})
+list(APPEND 3RDPARTY_LIBS ${GFLAGS_LIBRARY})
 
-if(BUILD_GLOG)
-  list(APPEND 3RDPARTY_LIBS glog)
-  list(APPEND DEPENDENCIES glog)
-  message(STATUS "Using glog library from root build")
-endif()
+# ---[ glog
+include(${VIDEO_STREAM_ROOT_PATH}/cmake/FindGlog.cmake)
+include_directories(${GLOG_INCLUDE_DIRS})
+list(APPEND 3RDPARTY_LIBS ${GLOG_LIBRARY})
 
 # ---[ Include directories
 include_directories(
@@ -154,14 +144,4 @@ message(STATUS "Video stream library will be built as: ${CMAKE_LIBRARY_OUTPUT_DI
 if(build_tests)
   add_subdirectory(unit_test)
 endif()
-
-if(build_samples)
-  add_subdirectory(samples)
-endif()
-
-if(build_tools)
-  add_subdirectory(tools)
-endif()
-
-
 

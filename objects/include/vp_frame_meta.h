@@ -6,7 +6,7 @@
 #include <opencv2/videoio.hpp>
 #include <vector>
 
-#include "vp_meta.h"
+#include "objects/include/vp_meta.h"
 
 namespace vp_objects {
 

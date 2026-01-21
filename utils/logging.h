@@ -16,5 +16,3 @@
 #define LOGI_IF(tag, condition) LOG_IF(INFO, condition) << "[VIDEO_STREAM " << (#tag) << " INFO] "
 #define LOGD_IF(tag, condition) VLOG_IF(1, condition) << "[VIDEO_STREAM " << (#tag) << " DEBUG] "
 #define LOGT_IF(tag, condition) VLOG_IF(2, condition) << "[VIDEO_STREAM " << (#tag) << " TRACE] "
-
-#endif  // VIDEO_STREAM_CORE_LOGGING_HPP_

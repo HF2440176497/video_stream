@@ -65,6 +65,15 @@ class ThreadSafeQueue {
 };
 
 template <typename T>
+const T& Front() {
+  std::lock_guard<std::mutex> lk(data_m_);
+  if (q_.empty()) {
+    throw std::runtime_error("ThreadSafeQueue: queue is empty");
+  }
+  return q_.front();
+}
+
+template <typename T>
 void ThreadSafeQueue<T>::Pop() {
   std::lock_guard<std::mutex> lk(data_m_);
   if (!q_.empty()) {
