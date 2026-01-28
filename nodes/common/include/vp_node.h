@@ -35,7 +35,7 @@ class vp_node : public vp_meta_publisher,
                 public vp_meta_subscriber,
                 public vp_meta_hookable,
                 public std::enable_shared_from_this<vp_node> {
- private:
+ public:
   std::string node_name_;
   vp_node_type node_type_ = vp_node_type::MID;
   std::thread handle_thread;
@@ -43,16 +43,15 @@ class vp_node : public vp_meta_publisher,
   std::vector<std::shared_ptr<vp_node>> pre_nodes;
 
  protected:
-  virtual std::shared_ptr<vp_objects::vp_meta> handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta) override;
-  virtual std::shared_ptr<vp_objects::vp_meta> handle_control_meta(std::shared_ptr<vp_objects::vp_control_meta> meta) override;
-  virtual void handle_frame_meta(const std::vector<std::shared_ptr<vp_objects::vp_frame_meta>>& meta_with_batch) override;
-  virtual void dispatch_meta(std::shared_ptr<vp_objects::vp_meta> meta) override;
+  virtual std::shared_ptr<vp_objects::vp_meta> handle_control_meta(std::shared_ptr<vp_objects::vp_control_meta> meta);
+  virtual void handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta);
+  virtual void handle_frame_meta(const std::vector<std::shared_ptr<vp_objects::vp_frame_meta>>& meta_with_batch);
 
   virtual void handle_run();
   virtual void dispatch_run();
-  virtual void initialized() override;
-  virtual void deinitialized() override;
-  virtual void meta_flow(std::shared_ptr<vp_objects::vp_meta> meta) override;  // receive meta from previous nodes,
+  void initialized();
+  virtual void deinitialized();
+  virtual void meta_flow(std::shared_ptr<vp_objects::vp_meta> meta);  // receive meta from previous nodes,
   
   std::vector<std::shared_ptr<vp_node>> next_nodes();
   void detach();  // detach myself from all previous nodes

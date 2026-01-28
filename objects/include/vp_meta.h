@@ -27,28 +27,19 @@ enum vp_meta_trace_field { SEQUENCE, NODE_NAME, IN_TIME, OUT_TIME, TEXT_INFO };
 class vp_meta {
  private:
  public:
+  vp_meta() = default;
   vp_meta(vp_meta_type meta_type, int channel_index);
   vp_meta(const vp_meta& other) = default;
   virtual ~vp_meta() = default;
 
-  // the time when meta created
   std::chrono::system_clock::time_point create_time_;
-
   vp_meta_type meta_type_;
 
-  // task id for project name
   std::string task_;
-
-  // channel the meta belongs to
   int channel_index_;
-
-  // write trace record or not
   bool trace_on = false;
 
-  // format traces string
   virtual std::string get_traces_str();
-
-  // format meta string
   virtual std::string get_meta_str();
 
   // virtual clone method since we do not know what specific meta we need copy in some situations, return a new pointer

@@ -11,7 +11,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(build_tests "build unit tests" OFF)
+option(build_tests "build unit tests" ON)
 option(build_tools "build tools" OFF)
 option(build_samples "build sample programs" OFF)
 
@@ -40,12 +40,14 @@ endif()
 set(VIDEO_STREAM_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}"
     CACHE INTERNAL "Top-level directory of this project")
 
+add_definitions(-DPROJECT_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+  
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${VIDEO_STREAM_ROOT_PATH}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${VIDEO_STREAM_ROOT_PATH}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  ${VIDEO_STREAM_ROOT_PATH}/bin)
 
 if(build_tests)
-  target_compile_definitions(video_stream PRIVATE UNIT_TEST)
+  add_definitions(-DUNIT_TEST)
 endif()
 
 if(build_tests)
@@ -58,7 +60,7 @@ if(build_tests)
   # get_target_property(GTEST_TYPE gtest TYPE)
   # message(STATUS "GTest target type: ${GTEST_TYPE}")
 
-  set(build_gtest_already ON)  # used by subdirectories
+  set(has_build_gtest ON)  # used by subdirectories
 endif()
 
 
@@ -119,6 +121,14 @@ include(${VIDEO_STREAM_ROOT_PATH}/cmake/FindGlog.cmake)
 include_directories(${GLOG_INCLUDE_DIRS})
 list(APPEND 3RDPARTY_LIBS ${GLOG_LIBRARY})
 
+# ---[ pybind11
+find_package(pybind11 REQUIRED)
+include_directories(${pybind11_INCLUDE_DIRS})
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/pybind11)
+
+find_package(Python3 COMPONENTS Development REQUIRED)
+include_directories(${Python3_INCLUDE_DIRS})
+
 # ---[ Include directories
 include_directories(
   ${VIDEO_STREAM_ROOT_PATH}
@@ -128,15 +138,21 @@ include_directories(
 file(GLOB_RECURSE VIDEO_STREAM_SOURCES
   "${VIDEO_STREAM_ROOT_PATH}/nodes/*/*.cpp"
   "${VIDEO_STREAM_ROOT_PATH}/objects/*/*.cpp"
-  "${VIDEO_STREAM_ROOT_PATH}/utils/*.cpp"
+  "${VIDEO_STREAM_ROOT_PATH}/utils/src/*.cpp"
   "${VIDEO_STREAM_ROOT_PATH}/excepts/*.cpp"
+  "${VIDEO_STREAM_ROOT_PATH}/py/*/*.cpp"
 )
 
 # ---[ Build video_stream dynamic library
 add_library(video_stream SHARED ${VIDEO_STREAM_SOURCES})
+# pybind11_add_module(video_stream SHARED ${VIDEO_STREAM_SOURCES})
 
 # Set dependencies to ensure third-party libraries are built first
-target_link_libraries(video_stream PRIVATE ${3RDPARTY_LIBS})
+target_link_libraries(video_stream PRIVATE 
+  ${3RDPARTY_LIBS} 
+  pybind11::module
+  Python3::Python
+  )
 add_dependencies(video_stream ${DEPENDENCIES})
 
 message(STATUS "Video stream library will be built as: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libvideo_stream.so")

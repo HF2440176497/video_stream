@@ -2,6 +2,7 @@
 #include "nodes/common/include/vp_node.h"
 #include "utils/vp_utils.h"
 #include "utils/logging.h"
+#include "excepts/vp_excepts.h"
 
 
 namespace vp_nodes {
@@ -10,7 +11,9 @@ vp_node::vp_node(std::string node_name) : node_name_(node_name) {
   node_type_ = vp_node_type::MID;
 }
 
-vp_node::~vp_node() {}
+vp_node::~vp_node() {
+  deinitialized();
+}
 
 void vp_node::handle_run() {
   // cache for batch handling if need
@@ -46,7 +49,7 @@ void vp_node::handle_run() {
         batch_complete = true;
       } else {
         LOGD(NODE) << utils::string_format("[%s] handle meta with batch, frame_meta_batch_cache.size()==>%d",
-                                          node_name_.c_str(), frame_meta_batch_cache.Size());
+                                          node_name_.c_str(), frame_meta_batch_cache.size());
       }
     } else {
       throw "invalid meta type!";
@@ -85,25 +88,25 @@ void vp_node::dispatch_run() {
       continue;
     }
     invoke_meta_leaving_hooker(node_name_, out_queue.Size(), out_meta);
-    this->dispatch_meta(out_meta);
+    this->push_meta(out_meta);
     this->out_queue.Pop();  // cache queue derectly pop out
     LOGD(NODE) << utils::string_format("[%s] after dispatching meta, out_queue.size()==>%d", 
                 node_name_.c_str(), out_queue.Size());
   }
 }
 
-std::shared_ptr<vp_objects::vp_meta> vp_node::handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta) {
-  return meta;
-}
-
-std::shared_ptr<vp_objects::vp_meta> vp_node::handle_control_meta(std::shared_ptr<vp_objects::vp_control_meta> meta) {
-  return meta;
+void vp_node::handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta) {
+  return;
 }
 
 void vp_node::handle_frame_meta(const std::vector<std::shared_ptr<vp_objects::vp_frame_meta>>& meta_with_batch) {
   for (auto& i : meta_with_batch) {
     this->handle_frame_meta(i);
   }
+}
+
+std::shared_ptr<vp_objects::vp_meta> vp_node::handle_control_meta(std::shared_ptr<vp_objects::vp_control_meta> meta) {
+  return meta;
 }
 
 // override vp_meta_subscriber::meta_flow
@@ -175,10 +178,7 @@ void vp_node::initialized() {
 }
 
 void vp_node::deinitialized() {
-  // send dead flag
   alive = false;
-
-  // note: in_queue if useful in mid_node and des_node
   this->in_queue.Push(nullptr);
   this->in_queue_semaphore.signal();
   // wait for threads exits in vp_node

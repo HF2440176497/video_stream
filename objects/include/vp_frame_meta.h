@@ -5,8 +5,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include <vector>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 #include "objects/include/vp_meta.h"
+
+namespace py = pybind11;
 
 namespace vp_objects {
 
@@ -15,6 +19,7 @@ class vp_frame_meta : public vp_meta {
  private:
   /* data */
  public:
+  vp_frame_meta() = default;
   vp_frame_meta(cv::Mat frame, int frame_index = -1, int channel_index = -1, 
                 int original_width = 0,
                 int original_height = 0, 
@@ -22,24 +27,17 @@ class vp_frame_meta : public vp_meta {
   virtual ~vp_frame_meta() = default;
   vp_frame_meta(const vp_frame_meta& meta);
 
-  // frame the meta belongs to, filled by src nodes.
   int frame_index_;
-
-  // fps for current video.
   int fps_;
-
-  // orignal frame width, fiiled by src nodes.
   int original_width_;
-
-  // original frame height, filled by src nodes.
   int original_height_;
-
-  // image data the meta holds, filled by src nodes.
-  // deep copy needed here for this member.
   cv::Mat frame_;
-
-  // copy myself
   virtual std::shared_ptr<vp_meta> clone() override;
+
+  py::array_t<uint8_t> get_frame_numpy();
+  void                 set_frame_numpy(py::array_t<uint8_t> arr, bool copy);
+  std::tuple<int, int> get_size() const;
+  std::string          __repr__() const;
 };
 
 }  // namespace vp_objects

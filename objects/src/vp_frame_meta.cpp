@@ -2,7 +2,7 @@
 #include <iterator>
 
 #include "objects/include/vp_frame_meta.h"
-
+#include "utils/pybind_vp_meta.h"
 
 namespace vp_objects {
 
@@ -30,11 +30,30 @@ vp_frame_meta::vp_frame_meta(const vp_frame_meta& meta)
   this->frame_ = meta.frame_.clone();
 }
 
-vp_frame_meta::~vp_frame_meta() {}
-
 std::shared_ptr<vp_meta> vp_frame_meta::clone() {
   // just call copy constructor and return new pointer
   return std::make_shared<vp_frame_meta>(*this);
+}
+
+// ----------------- 用于绑定
+
+py::array_t<uint8_t> vp_frame_meta::get_frame_numpy() {
+    return utils::to_numpy(frame_);
+}
+
+void vp_frame_meta::set_frame_numpy(py::array_t<uint8_t> arr, bool copy = false) {
+    cv::Mat new_mat = utils::to_mat(arr);
+    frame_ = copy ? new_mat.clone() : new_mat;
+}
+
+std::tuple<int, int> vp_frame_meta::get_size() const {
+    return {frame_.cols, frame_.rows};
+}
+
+std::string vp_frame_meta::__repr__() const {
+    return "vp_frame_meta(idx=" + std::to_string(frame_index_) + 
+            ", size=" + std::to_string(frame_.cols) + "x" + 
+            std::to_string(frame_.rows) + ")";
 }
 
 }  // namespace vp_objects

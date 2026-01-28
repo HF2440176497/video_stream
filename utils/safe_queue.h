@@ -37,15 +37,12 @@ class ThreadSafeQueue {
   ThreadSafeQueue() = default;
   ThreadSafeQueue(const ThreadSafeQueue& other) = delete;
   ThreadSafeQueue& operator=(const ThreadSafeQueue& other) = delete;
-
+  
+  const T& Front();
   void Pop();
-
   bool TryPop(T& value);
-
   void WaitAndPop(T& value);
-
   bool WaitAndTryPop(T& value, const std::chrono::microseconds rel_time);
-
   void Push(const T& new_value);
 
   bool Empty() {
@@ -65,7 +62,7 @@ class ThreadSafeQueue {
 };
 
 template <typename T>
-const T& Front() {
+const T& ThreadSafeQueue<T>::Front() {
   std::lock_guard<std::mutex> lk(data_m_);
   if (q_.empty()) {
     throw std::runtime_error("ThreadSafeQueue: queue is empty");

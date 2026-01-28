@@ -4,11 +4,9 @@ if(NOT DEFINED VIDEO_STREAM_ROOT_PATH)
         CACHE INTERNAL "Top-level directory of this project")
 endif()
 
-include(${VIDEO_STREAM_ROOT_PATH}/cmake/have_video_stream_target.cmake)
-
-if(NOT build_gtest_already)
+if(NOT has_build_gtest)
   add_subdirectory(${VIDEO_STREAM_ROOT_PATH}/3rdparty/googletest)
-  set(build_gtest_already ON)
+  set(has_build_gtest ON)
 endif()
 include_directories(${VIDEO_STREAM_ROOT_PATH}/3rdparty/googletest/googletest/include)
 
@@ -16,12 +14,19 @@ include_directories(
   ${VIDEO_STREAM_ROOT_PATH}
 )
 
-# set(test_srcs "")
+set(test_srcs "main.cpp")
 
-# have_video_stream_target(${VIDEO_STREAM_ROOT_PATH})
-
-# add_executable(video_stream_modules_test ${test_srcs})
-# add_dependencies(video_stream_modules_test video_stream)
-# target_link_libraries(video_stream_modules_test video_stream gflags glog gtest rt dl pthread)
-
+add_executable(video_stream_modules_test ${test_srcs})
+add_dependencies(video_stream_modules_test video_stream)
+target_link_libraries(video_stream_modules_test 
+  video_stream 
+  gflags 
+  glog 
+  gtest 
+  rt 
+  dl 
+  pthread 
+  pybind11::embed
+  Python3::Python
+)
 
