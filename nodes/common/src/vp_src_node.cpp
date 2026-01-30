@@ -21,6 +21,7 @@ vp_src_node::~vp_src_node() {
     data_source_->close();
   }
   deinitialized();
+  py_call.reset();  // 确保 join 完成后再析构 caller
 }
 
 void vp_src_node::deinitialized() {
@@ -67,10 +68,8 @@ void vp_src_node::handle_run() {
  */
 void vp_src_node::handle_frame_meta(std::shared_ptr<vp_objects::vp_frame_meta> meta) {
   LOGI(SOURCE) << "------------ handle_frame_meta, frame_index: " << meta->frame_index_;
-  LOGI(SOURCE) << "------------ handle_frame_meta, original_width: " << meta->original_width_;
-  LOGI(SOURCE) << "------------ handle_frame_meta, original_height: " << meta->original_height_;
-
-  py_call->process(meta, "python_scripts/process_frame.py");
+  meta = py_call->process(meta, "python_scripts.process_frame");
+  LOGI(SOURCE) << "  after process, frame_index: " << meta->frame_index_;
 }
 
 void vp_src_node::start() { gate.open(); }

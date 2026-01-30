@@ -19,14 +19,13 @@ set(test_srcs "main.cpp")
 add_executable(video_stream_modules_test ${test_srcs})
 add_dependencies(video_stream_modules_test video_stream)
 target_link_libraries(video_stream_modules_test 
-  video_stream 
+  video_stream
+  Python3::Python
   gflags 
   glog 
   gtest 
   rt 
   dl 
-  pthread 
-  pybind11::embed
-  Python3::Python
+  pthread
 )
 

@@ -151,7 +151,7 @@ add_library(video_stream SHARED ${VIDEO_STREAM_SOURCES})
 target_link_libraries(video_stream PRIVATE 
   ${3RDPARTY_LIBS} 
   pybind11::module
-  Python3::Python
+  pybind11::embed
   )
 add_dependencies(video_stream ${DEPENDENCIES})
 
